@@ -34,6 +34,7 @@ time_t getSunset(double latitude, double longitude, double elevation, int timezo
 double _calculateSunEvent(int event, double latitude, double longitude, double elevation) {
 
     //calculate mean solar time
+    //after 12:00 it calculates sunrise and sunset for tomorrow, ok for sunrise, but sunet can get lost if not saved on time
     auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     double jDate = jDateFromTimeStamp(timestamp);
     double n = std::ceil(jDate - 2451545.0 + 0.0008);

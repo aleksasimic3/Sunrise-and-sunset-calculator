@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -Wall -Iinclude
+CFLAGS = -Wall -Iinclude -lshlwapi
 
 SOURCE = src/
 INCLUDE = include/
