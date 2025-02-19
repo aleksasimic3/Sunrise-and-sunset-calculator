@@ -22,25 +22,24 @@ int main() {
     //Belgrade
     //const double latitude = 44.787197;
     //const double longitude = 20.457273;
-    //const double elevation = 117; //ovo moze da bude int
+    //const double elevation = 117;
     //const int timezone = 1;
 
     double latitude, longitude, elevation;
     int timezone;
     if(!readConfig(latitude, longitude, elevation, timezone)) {
+        std::cerr << "Error reading configuration file!\n";
         return -1;
     }
 
     std::cout << '\n';
     std::cout << (latitude>=0?'N':'S') << std::abs(latitude) << ' ' << (longitude>=0?'E':'W') << std::abs(longitude) << '\n';
     std::cout << elevation << "m elevation\n";
-    std::cout << "GMT" << (timezone>=0?'+':'-') << timezone << '\n';
+    std::cout << "GMT" << (timezone>=0?"+":"") << timezone << '\n';
 
     time_t currentTime = std::time(NULL);
     std::cout << '\n' <<  std::ctime(&currentTime) << '\n';
 
-    //izgleda da ctime pazi o vremenskim zonama :)
-    //posle 12:00 pokazuje zalazak sunca za sutra uvece
     time_t sunrise = getSunrise(latitude, longitude, elevation, timezone);
     std::cout << "Sunrise: " << std::ctime(&sunrise);
 
@@ -50,11 +49,11 @@ int main() {
     return 0;
 }
 
-//still needs handling of missing or duplicate keys
 bool readConfig(double &latitude, double &longitude, double &elevation, int &timezone) {
 
     const unsigned PATH_LEN = 4096;
     char buffer[PATH_LEN];
+    bool rewriteConfig = false;
 
 #ifdef _WIN32
     GetModuleFileName(NULL, buffer, sizeof(buffer));
@@ -73,7 +72,17 @@ bool readConfig(double &latitude, double &longitude, double &elevation, int &tim
     std::fstream configFile(filename);
     if (!configFile.is_open()) {
         std::cerr << "Error opening file " << filename << '\n';
-        return false;
+        configFile.open(filename, std::ios::out);
+        if(!configFile.is_open()) {
+            std::cerr << "Error creating file " << filename << '\n';
+            return false;
+        }
+        configFile.close();
+        configFile.open(filename);
+        if(!configFile.is_open()) {
+            std::cerr << "Error opening file " << filename << '\n';
+            return false;
+        }
     }
 
     std::map<std::string, std::string> config;
@@ -83,16 +92,18 @@ bool readConfig(double &latitude, double &longitude, double &elevation, int &tim
         std::string key, value;
         if(!std::getline(lineStream, key, '=')) {
             std::cerr << "Error reading key from line " << line << '\n';
-            return false;
+            rewriteConfig = true;
+            continue;
         }
         if(!std::getline(lineStream, value)) {
             std::cerr << "Error reading value from line " << line << '\n';
-            return false;
+            rewriteConfig = true;
+            continue;
         }
 
         if(config.find(key) != config.end()) {
             std::cerr << "Duplicate key " << key << '\n';
-            return false;
+            rewriteConfig = true;
         }
         config[key] = value;
     }
@@ -102,28 +113,49 @@ bool readConfig(double &latitude, double &longitude, double &elevation, int &tim
         latitude = std::stod(config["LATITUDE"]);
     } else {
         std::cerr << "Missing key LATITUDE\n";
-        return false;
+        std::cout << "Enter latitude: ";
+        std::cin >> latitude;
+        rewriteConfig = true;
     }
 
     if(config.find("LONGITUDE") != config.end()) {
         longitude = std::stod(config["LONGITUDE"]);
     } else {
         std::cerr << "Missing key LONGITUDE\n";
-        return false;
+        std::cout << "Enter longitude: ";
+        std::cin >> longitude;
+        rewriteConfig = true;
     }
 
     if(config.find("ELEVATION") != config.end()) {
         elevation = std::stod(config["ELEVATION"]);
     } else {
         std::cerr << "Missing key ELEVATION\n";
-        return false;
+        std::cout << "Enter elevation: ";
+        std::cin >> elevation;
+        rewriteConfig = true;
     }
 
     if(config.find("TIMEZONE") != config.end()) {
         timezone = std::stoi(config["TIMEZONE"]);
     } else {
         std::cerr << "Missing key TIMEZONE\n";
-        return false;
+        std::cout << "Enter timezone: ";
+        std::cin >> timezone;
+        rewriteConfig = true;
+    }
+
+    if(rewriteConfig) {
+        configFile.open(filename, std::ios::out);
+        if (!configFile.is_open()) {
+            std::cerr << "Error opening file " << filename << '\n';
+            return false;
+        }
+        configFile << "LATITUDE=" << latitude << '\n';
+        configFile << "LONGITUDE=" << longitude << '\n';
+        configFile << "ELEVATION=" << elevation << '\n';
+        configFile << "TIMEZONE=" << timezone << '\n';
+        configFile.close();
     }
 
     return true;
