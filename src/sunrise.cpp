@@ -72,7 +72,8 @@ double _calculateSunEvent(int event, double latitude, double longitude, double e
     double d_cos = std::cos(std::asin(d_sin));
     
     //hour angle //~0.5 degree error
-    const double elevationCorrection = std::sin(radians(-0.833)); //implement elevation correction
+    const double correctionFactor = -2.076*std::sqrt(elevation)/60;
+    const double elevationCorrection = std::sin(radians(-0.833+correctionFactor));
     const double lat_sin = std::sin(radians(latitude));
     const double lat_cos = std::cos(radians(latitude));
     double w0 = std::acos((elevationCorrection - lat_sin*d_sin) / (lat_cos * d_cos));
