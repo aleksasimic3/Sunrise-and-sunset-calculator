@@ -7,7 +7,7 @@ namespace {
     double degrees(double rad) {
         return rad * 180.0/M_PI;
     }
-    double jDateFromTimeStamp(double ts){
+    double jDateFromTimeStamp(double ts){ 
         return ts/86400.0 + 2440587.5;
     }
     double timeStampFromJDate(double jDate) {
@@ -18,19 +18,30 @@ namespace {
 time_t getSunrise(double latitude, double longitude, double elevation, int timezone) {
 
     double jRise = _calculateSunEvent(1, latitude, longitude, elevation);
-
     time_t sunrise = timeStampFromJDate(jRise);
-    //add check to see if sunrise is today or tomorrow
-    //if now() - sunrise > 24h
+
+    time_t now = std::time(NULL);
+    if(now > sunrise) {
+        //std::clog << "Sunrise has already passed, recalculating...\n";
+        sunrise += 24*3600;
+    }
+
     return sunrise;
 }
 
 time_t getSunset(double latitude, double longitude, double elevation, int timezone) {
 
     double jSet = _calculateSunEvent(-1, latitude, longitude, elevation);
-
     time_t sunset = timeStampFromJDate(jSet);
-    //add check to see if sunset is today or tomorrow
+
+    //this is a quick fix for the sunset bug, it looses accuracy
+    //rewrite _calculateSunEvent to take a timestamp as an argument
+    time_t now = std::time(NULL);
+    if(sunset - now > (24*3600)) {
+        //std::clog << "Sunset is more than 24 hours away, recalculating...\n";
+        sunset -= 24*3600;
+    }
+
     return sunset;
 }
 
